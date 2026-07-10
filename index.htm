@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Генератор надёжных паролей</title>
+
+    <!-- Yandex.RTB (загрузчик) -->
+    <script>window.yaContextCb = window.yaContextCb || []</script>
+    <script src="https://yandex.ru/ads/system/context.js" async></script>
+
+    <style>
+        /* ---------- Глобальные стили ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            background: radial-gradient(circle at 20% 30%, #0d1b2a, #1b0e2e);
+            /* тёмный градиент с фиолетовым отливом */
+            background-attachment: fixed;
+        }
+
+        /* лёгкий шум поверх фона (опционально) */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .page-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* ---------- Боковой рекламный блок (десктоп) ---------- */
+        .ad-side {
+            flex: 0 0 160px;
+            min-height: 280px;
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 6px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 13px;
+            transition: border-color 0.3s;
+        }
+        .ad-side::before {
+            content: "Реклама";
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* ---------- Основная карточка (glassmorphism) ---------- */
+        .card {
+            flex: 1 1 440px;
+            max-width: 580px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 32px;
+            padding: 36px 32px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6);
+        }
+
+        /* ---------- Рекламный блок вверху ---------- */
+        .ad-top {
+            margin-bottom: 24px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            padding: 12px;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ---------- Типография ---------- */
+        .card-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .card-header h1 {
+            font-size: 30px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+        .card-header .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 15px;
+            margin-top: 4px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        /* ---------- Поле пароля ---------- */
+        .password-field {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .password-field .input-wrap {
+            flex: 1;
+            position: relative;
+        }
+        .password-field .input-wrap .lock-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        #password {
+            width: 100%;
+            padding: 16px 16px 16px 48px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            font-size: 22px;
+            font-weight: 500;
+            letter-spacing: 1.5px;
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        #password:focus {
+            border-color: #f6d365;
+            box-shadow: 0 0 0 4px rgba(246, 211, 101, 0.15);
+        }
+        #password::placeholder {
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        #copyBtn {
+            padding: 0 24px;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #f6d365, #fda085);
+            color: #0d1b2a;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.3s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #copyBtn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(246, 211, 101, 0.3);
+        }
+        #copyBtn:active {
+            transform: scale(0.96);
+        }
+
+        /* ---------- Индикатор надёжности (прогресс-бар) ---------- */
+        .strength-wrapper {
+            margin-bottom: 20px;
+        }
+        .strength-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 4px;
+        }
+        .strength-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .strength-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 20px;
+            transition: width 0.4s ease, background 0.4s ease;
+            background: #e74c3c;
+        }
+        #strengthText {
+            font-weight: 500;
+        }
+
+        /* ---------- Кнопка генерации ---------- */
+        #generateBtn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #f6d365, #fda085);
+            color: #0d1b2a;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.3s;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        #generateBtn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(246, 211, 101, 0.35);
+        }
+        #generateBtn:active {
+            transform: scale(0.97);
+        }
+
+        /* ---------- Чекбоксы ---------- */
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 24px;
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+        .options label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .options label:hover {
+            color: #fff;
+        }
+        .options input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .options input[type="checkbox"]:checked {
+            background: #f6d365;
+            border-color: #f6d365;
+            box-shadow: 0 0 0 3px rgba(246, 211, 101, 0.25);
+        }
+        .options input[type="checkbox"]:checked::after {
+            content: "✓";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #0d1b2a;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* ---------- Ползунок длины ---------- */
+        .length-control {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            justify-content: center;
+            margin: 6px 0 22px;
+        }
+        .length-control label {
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .length-control input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 200px;
+            height: 4px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            outline: none;
+            transition: background 0.3s;
+        }
+        .length-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f6d365, #fda085);
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(246, 211, 101, 0.4);
+            transition: transform 0.15s;
+        }
+        .length-control input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+        .length-control input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #f6d365;
+            cursor: pointer;
+            border: none;
+        }
+        .length-control span {
+            min-width: 32px;
+            font-weight: 700;
+            font-size: 22px;
+            color: #f6d365;
+            text-align: center;
+        }
+
+        /* ---------- SEO-текст ---------- */
+        .seo-text {
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        .seo-text p {
+            margin-bottom: 10px;
+        }
+        .seo-text strong {
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 600;
+        }
+
+        /* ---------- Рекламный блок внизу ---------- */
+        .ad-bottom {
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            padding: 12px;
+            border: 1px dashed rgba(255, 255, 255, 0.08);
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ---------- Footer ---------- */
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        /* ---------- Адаптив ---------- */
+        @media (max-width: 850px) {
+            .ad-side {
+                display: none;
+            }
+            .card {
+                padding: 28px 20px;
+            }
+        }
+        @media (max-width: 480px) {
+            .password-field {
+                flex-wrap: wrap;
+            }
+            #copyBtn {
+                width: 100%;
+                justify-content: center;
+                padding: 14px;
+            }
+            .length-control input[type="range"] {
+                width: 140px;
+            }
+            .card-header h1 {
+                font-size: 24px;
+            }
+            #password {
+                font-size: 18px;
+                padding: 14px 14px 14px 42px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Боковой рекламный блок (десктоп) – заглушка -->
+        <div class="ad-side"></div>
+
+        <!-- Основная карточка -->
+        <div class="card">
+            <!-- Рекламный блок вверху – ваш код РСЯ -->
+            <div class="ad-top">
+                <!-- Yandex.RTB R-A-19571832-1 -->
+                <div id="yandex_rtb_R-A-19571832-1"></div>
+                <script>
+                    window.yaContextCb.push(() => {
+                        Ya.Context.AdvManager.render({
+                            "blockId": "R-A-19571832-1",
+                            "renderTo": "yandex_rtb_R-A-19571832-1"
+                        })
+                    })
+                </script>
+            </div>
+
+            <div class="card-header">
+                <h1>🔐 Генератор паролей</h1>
+                <div class="subtitle">Создайте уникальный пароль за секунду</div>
+            </div>
+
+            <!-- Поле пароля + кнопка копирования -->
+            <div class="password-field">
+                <div class="input-wrap">
+                    <span class="lock-icon">🔑</span>
+                    <input type="text" id="password" placeholder="Нажмите «Сгенерировать»" readonly />
+                </div>
+                <button id="copyBtn">📋 Копировать</button>
+            </div>
+
+            <!-- Индикатор надёжности (прогресс-бар) -->
+            <div class="strength-wrapper">
+                <div class="strength-label">
+                    <span>Надёжность</span>
+                    <span id="strengthText">—</span>
+                </div>
+                <div class="strength-bar-bg">
+                    <div class="strength-bar-fill" id="strengthBar" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Кнопка генерации -->
+            <button id="generateBtn">🔄 Сгенерировать пароль</button>
+
+            <!-- Чекбоксы -->
+            <div class="options">
+                <label><input type="checkbox" id="chkLower" checked /> a-z</label>
+                <label><input type="checkbox" id="chkUpper" checked /> A-Z</label>
+                <label><input type="checkbox" id="chkDigits" checked /> 0-9</label>
+                <label><input type="checkbox" id="chkSymbols" checked /> !@#</label>
+            </div>
+
+            <!-- Ползунок длины -->
+            <div class="length-control">
+                <label for="lengthSlider">Длина:</label>
+                <input type="range" id="lengthSlider" min="6" max="32" value="16" />
+                <span id="lengthDisplay">16</span>
+            </div>
+
+            <!-- SEO-текст -->
+            <div class="seo-text">
+                <p><strong>Надёжный пароль</strong> — основа вашей безопасности в интернете. Используйте наш <strong>генератор паролей</strong>, чтобы создать уникальную комбинацию символов, которую невозможно подобрать. Защитите свои аккаунты от взлома.</p>
+                <p>Длина пароля и использование специальных символов значительно повышают стойкость к перебору. Рекомендуем использовать не менее 16 символов. Сложный пароль — это первый шаг к <strong>безопасности</strong> ваших данных.</p>
+                <p>Генерируйте новые пароли для каждого сервиса и не используйте один и тот же дважды. Наш инструмент поможет вам создать по-настоящему случайную комбинацию.</p>
+            </div>
+
+            <!-- Рекламный блок внизу – заглушка -->
+            <div class="ad-bottom">Реклама</div>
+
+            <div class="footer">© 2026 · Сделано с помощью вайбкодинга</div>
+        </div>
+    </div>
+
+    <script>
+        // ---------- Логика генерации ----------
+        const passwordField = document.getElementById('password');
+        const generateBtn = document.getElementById('generateBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const strengthText = document.getElementById('strengthText');
+        const strengthBar = document.getElementById('strengthBar');
+        const lengthSlider = document.getElementById('lengthSlider');
+        const lengthDisplay = document.getElementById('lengthDisplay');
+        const chkLower = document.getElementById('chkLower');
+        const chkUpper = document.getElementById('chkUpper');
+        const chkDigits = document.getElementById('chkDigits');
+        const chkSymbols = document.getElementById('chkSymbols');
+
+        function generatePassword() {
+            const len = parseInt(lengthSlider.value, 10);
+            let chars = '';
+            if (chkLower.checked) chars += 'abcdefghijklmnopqrstuvwxyz';
+            if (chkUpper.checked) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            if (chkDigits.checked) chars += '0123456789';
+            if (chkSymbols.checked) chars += '!@#$%^&*()_+-=<>?';
+
+            if (!chars) {
+                alert('Выберите хотя бы один набор символов');
+                return;
+            }
+
+            let password = '';
+            for (let i = 0; i < len; i++) {
+                const idx = Math.floor(Math.random() * chars.length);
+                password += chars[idx];
+            }
+            passwordField.value = password;
+            updateStrength(password);
+        }
+
+        function updateStrength(password) {
+            const len = password.length;
+            // Энтропия (грубая оценка на 72 символа)
+            const entropy = len * Math.log2(72);
+            let label, color, width;
+            if (entropy < 40) {
+                label = 'Слабый';
+                color = '#e74c3c';
+                width = 30;
+            } else if (entropy < 70) {
+                label = 'Средний';
+                color = '#f39c12';
+                width = 65;
+            } else {
+                label = 'Сильный';
+                color = '#2ecc71';
+                width = 100;
+            }
+            strengthText.textContent = label;
+            strengthText.style.color = color;
+            strengthBar.style.width = width + '%';
+            strengthBar.style.background = color;
+        }
+
+        // Обработчики событий
+        generateBtn.addEventListener('click', generatePassword);
+
+        copyBtn.addEventListener('click', () => {
+            const pass = passwordField.value;
+            if (!pass) {
+                alert('Сначала сгенерируйте пароль');
+                return;
+            }
+            navigator.clipboard.writeText(pass).then(() => {
+                copyBtn.innerHTML = '✅ Скопировано!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '📋 Копировать';
+                }, 2000);
+            }).catch(() => {
+                // fallback
+                passwordField.select();
+                document.execCommand('copy');
+                copyBtn.innerHTML = '✅ Скопировано!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '📋 Копировать';
+                }, 2000);
+            });
+        });
+
+        lengthSlider.addEventListener('input', () => {
+            lengthDisplay.textContent = lengthSlider.value;
+            generatePassword();
+        });
+
+        document.querySelectorAll('.options input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', generatePassword);
+        });
+
+        // Генерация при загрузке
+        window.addEventListener('DOMContentLoaded', generatePassword);
+    </script>
+</body>
+          </html>
